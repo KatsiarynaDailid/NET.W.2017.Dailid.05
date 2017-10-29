@@ -43,7 +43,15 @@ namespace Library
         public Polynomial(double[] coefficients)
         {
             this.degree = coefficients.Length - 1;
-            this.coefficients = coefficients;
+
+            if (coefficients.Length == 1)
+            {
+                this.coefficients = new double[] { 0 };
+            }
+            else
+            {
+                this.coefficients = coefficients;
+            }
         }
 
 
@@ -128,11 +136,22 @@ namespace Library
         {
             var result = new double[Math.Max(second.Degree, first.Degree) + 1];
 
-            for (int i = 0; i <= first.Degree; i++)
-                result[i] += first.Coefficients[i];
-            
-            for (int i = 0; i <= second.Degree; i++)
-                result[i] += second.Coefficients[i];
+            if (first.Degree > second.Degree)
+            {
+                for (int i = 0; i <= first.Degree; i++)
+                    result[i] = first.Coefficients[i];
+
+                for (int i = 0; i <= second.Degree; i++)
+                    result[i + first.Degree - second.Degree] += second.Coefficients[i];
+            }
+            else
+            {
+                for (int i = 0; i <= second.Degree; i++)
+                    result[i] = second.Coefficients[i];
+
+                for (int i = 0; i <= first.Degree; i++)
+                    result[i + second.Degree - first.Degree] += first.Coefficients[i];
+            }
 
             return new Polynomial(result);
         }
@@ -144,13 +163,24 @@ namespace Library
 
         public static Polynomial Subtract(Polynomial first, Polynomial second)
         {
-            var result = new double[Math.Max(second.Degree, first.Degree) + 1];
+            var result = new double[Math.Max(second.degree, first.degree) + 1];
 
-            for (int i = 0; i <= first.Degree; i++)
-                result[i] -= first.Coefficients[i];
+            if (first.Degree > second.Degree)
+            {
+                for (int i = 0; i <= first.Degree; i++)
+                    result[i] += first.Coefficients[i];
 
-            for (int i = 0; i <= second.Degree; i++)
-                result[i] -= second.Coefficients[i];
+                for (int i = 0; i <= second.Degree; i++)
+                    result[i + first.Degree - second.Degree] -= second.Coefficients[i];
+            }
+            else
+            {
+                for (int i = 0; i <= first.Degree; i++)
+                    result[i + second.Degree - first.Degree] += first.Coefficients[i];
+
+                for (int i = 0; i <= second.Degree; i++)
+                    result[i] -= second.Coefficients[i];
+            }
 
             return new Polynomial(result);
         }
