@@ -1,96 +1,126 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Library
 {
-    public class Polynomial
+    public sealed class Polynomial
     {
-
-        private double[] coefficients;
-
-        private int degree;
-
-        public double[] Coefficients
-        {
-            get
-            {
-                return this.coefficients;
-            }
-        }
+        private double[] coefficients = { };
 
         public int Degree
         {
             get
             {
-                return this.degree;
+                if (coefficients.Length > 0)
+                {
+                    return coefficients.Length - 1;
+                }
+                else return 0;
             }
         }
 
-        public Polynomial(int degree)
+        public Polynomial(params double[] coefficients)
         {
-            this.degree = degree;
-            var coeff = new double[degree + 1];
-            for(int i = 0; i <= degree; i++)
+            // not sure if it's a good idea
+            if (coefficients.Length == 0 || coefficients.Length == 1)
+                return;
+
+            int i = 0;
+            for (i = coefficients.Length; i > 0; i--)
             {
-                coeff[i] = 1;
+                if (Math.Abs(coefficients[i - 1]) <= AppConfiguration.Epsilon) continue;
+                else break;
             }
-            this.coefficients = coeff;
+
+            double[] temp = new double[i];
+            if (temp.Length == 0) throw new ArgumentException();
+            Array.Copy(coefficients, temp, i);
+
+            this.coefficients = temp;
         }
 
-        public Polynomial(double[] coefficients)
+        public double this[int n]
         {
-            this.degree = coefficients.Length - 1;
-
-            if (coefficients.Length == 1)
+            get
             {
-                this.coefficients = new double[] { 0 };
+                if (n <= Degree)
+                {
+                    return coefficients[n];
+                }
+                else throw new ArgumentOutOfRangeException();
             }
-            else
+
+            private set
             {
-                this.coefficients = coefficients;
+                if (n >= 0 && n <= Degree)
+                {
+                    this.coefficients[n] = value;
+                }
+                else throw new ArgumentOutOfRangeException();
+
             }
         }
 
+        #region Object methods
 
-        public override bool Equals(object obj)
+        public bool Equals(Polynomial poly)
         {
-            Polynomial poly;
+            if (ReferenceEquals(null, poly))
+                return false;
 
-            if (ReferenceEquals(this, obj))
+            if (ReferenceEquals(this, poly))
                 return true;
 
-            if (obj is Polynomial)
-                poly = obj as Polynomial;
-             else
-                throw new ArgumentException("Wrong type of the input parameter."); 
-
-            if (this.Degree != poly.Degree)
+            if (this.Degree != poly.Degree )
                 return false;
-            
-            for(int i = 0; i < this.Degree; i++)
+
+            if (this.Degree == 0)
+                return true;
+
+            for (int i = 0; i <= this.Degree; i++)
             {
-                if (poly.coefficients[i] != this.coefficients[i]) return false;
+                if(!(Math.Abs((poly.coefficients[i] - this.coefficients[i])) < AppConfiguration.Epsilon))
+                    return false;
             }
 
             return true;
         }
 
+        /// <summary>
+        /// Overrided Equals for obj
+        /// </summary>
+        /// <param name="obj">Object</param>
+        /// <returns>True if polynoms are the same
+        /// False if not
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+                return false;
+
+            if (ReferenceEquals(this, obj))
+                return true;
+
+            if (obj.GetType() != this.GetType())
+                return false;
+
+            return Equals((Polynomial)obj);
+        }
+
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            int result = 0;
+            for (int i = 0; i <= this.Degree; i++)
+            {
+                result += this.coefficients[i].GetHashCode();
+            }
+            return result;
         }
 
         public override String ToString()
         {
             string result = "";
 
-            if(coefficients.Length == 1 && coefficients[0] != 0)
-            {
-                return $"{coefficients[0]}x = 0";
-            } else if(coefficients.Length == 1 && coefficients[0] == 0)
+            if (coefficients.Length == 0 || coefficients.Length == 1)
             {
                 return "0 = 0";
             }
@@ -122,98 +152,132 @@ namespace Library
                 {
                     result += $"{coefficients[i]} = 0";
                 }
+                else if (i == Degree && coefficients[i] == 0)
+                {
+                    result += "=0";
+                }
             }
-             
+
             return result;
         }
 
-        public static Polynomial operator +(Polynomial firstPoly, Polynomial secondPoly)
+        #endregion
+
+        #region Overloaded operations
+
+        public static Polynomial operator -(Polynomial poly)
         {
-            return Add(firstPoly, secondPoly);
+            if (poly.Degree == 0 || poly == null)
+                throw new ArgumentNullException();
+
+            Double[] newCoeff = new double[poly.Degree + 1];
+
+            for (int i = 0; i <= poly.Degree; i++)
+            {
+                newCoeff[i] = -poly.coefficients[i];
+            }
+            return new Polynomial(newCoeff);
         }
 
-        public static Polynomial Add(Polynomial first, Polynomial second)
+        public static Polynomial operator +(Polynomial lhs, Polynomial rhs)
         {
-            var result = new double[Math.Max(second.Degree, first.Degree) + 1];
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
 
-            if (first.Degree > second.Degree)
+            return Add(lhs, rhs);
+        }
+
+        public static Polynomial Add(Polynomial lhs, Polynomial rhs)
+        {
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
+
+            var result = new double[Math.Max(rhs.Degree, lhs.Degree) + 1];
+
+            if (lhs.Degree > rhs.Degree)
             {
-                for (int i = 0; i <= first.Degree; i++)
-                    result[i] = first.Coefficients[i];
+                for (int i = 0; i <= lhs.Degree; i++)
+                    result[i] = lhs.coefficients[i];
 
-                for (int i = 0; i <= second.Degree; i++)
-                    result[i + first.Degree - second.Degree] += second.Coefficients[i];
+                for (int i = 0; i <= rhs.Degree; i++)
+                    result[i + lhs.Degree - rhs.Degree] += rhs.coefficients[i];
             }
             else
             {
-                for (int i = 0; i <= second.Degree; i++)
-                    result[i] = second.Coefficients[i];
+                for (int i = 0; i <= rhs.Degree; i++)
+                    result[i] = rhs.coefficients[i];
 
-                for (int i = 0; i <= first.Degree; i++)
-                    result[i + second.Degree - first.Degree] += first.Coefficients[i];
+                for (int i = 0; i <= lhs.Degree; i++)
+                    result[i + rhs.Degree - lhs.Degree] += lhs.coefficients[i];
             }
 
             return new Polynomial(result);
         }
 
-        public static Polynomial operator -(Polynomial firstPoly, Polynomial secondPoly)
+        public static Polynomial operator -(Polynomial lhs, Polynomial rhs)
         {
-            return Subtract(firstPoly, secondPoly);
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
+
+            return Subtract(lhs, rhs);
         }
 
-        public static Polynomial Subtract(Polynomial first, Polynomial second)
+        public static Polynomial Subtract(Polynomial lhs, Polynomial rhs)
         {
-            var result = new double[Math.Max(second.degree, first.degree) + 1];
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
 
-            if (first.Degree > second.Degree)
-            {
-                for (int i = 0; i <= first.Degree; i++)
-                    result[i] += first.Coefficients[i];
-
-                for (int i = 0; i <= second.Degree; i++)
-                    result[i + first.Degree - second.Degree] -= second.Coefficients[i];
-            }
-            else
-            {
-                for (int i = 0; i <= first.Degree; i++)
-                    result[i + second.Degree - first.Degree] += first.Coefficients[i];
-
-                for (int i = 0; i <= second.Degree; i++)
-                    result[i] -= second.Coefficients[i];
-            }
-
-            return new Polynomial(result);
+            return Add(lhs, -rhs);
         }
 
-        public static Polynomial operator *(Polynomial firstPoly, Polynomial secondPoly)
+        public static Polynomial operator *(Polynomial lhs, Polynomial rhs)
         {
-            return Multiply(firstPoly, secondPoly);
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
+
+            return Multiply(lhs, rhs);
         }
 
-        public static Polynomial Multiply(Polynomial first, Polynomial second)
+        public static Polynomial Multiply(Polynomial lhs, Polynomial rhs)
         {
-            var result = new double[second.Degree + first.Degree + 1];
+            if (ReferenceEquals(lhs, null))
+                throw new ArgumentNullException();
+            if (ReferenceEquals(rhs, null))
+                throw new ArgumentNullException();
 
-            for (int i = 0; i <= first.Degree; i++)
+            var result = new double[rhs.Degree + lhs.Degree + 1];
+
+            for (int i = 0; i <= lhs.Degree; i++)
             {
-                for (int j = 0; j <= second.Degree; j++)
+                for (int j = 0; j <= rhs.Degree; j++)
                 {
-                    result[i + j] += first.Coefficients[i] * second.Coefficients[j];
+                    result[i + j] += lhs.coefficients[i] * rhs.coefficients[j];
                 }
             }
             return new Polynomial(result);
         }
 
-        public static bool operator ==(Polynomial firstPoly, Polynomial secondPoly)
+        public static bool operator ==(Polynomial lhs, Polynomial rhs)
         {
-            return firstPoly.Equals(secondPoly);
+            return lhs.Equals(rhs);
         }
 
-        public static bool operator !=(Polynomial firstPoly, Polynomial secondPoly)
+        public static bool operator !=(Polynomial lhs, Polynomial rhs)
         {
-            return !firstPoly.Equals(secondPoly);
+            return !lhs.Equals(rhs);
         }
 
+        #endregion
 
     }
 }
