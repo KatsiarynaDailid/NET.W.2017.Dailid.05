@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Library
 {
+    /// <summary>
+    /// Implementation without interfaces usage
+    /// </summary>
     public static class JaggedArray
     {
         /// <summary>
@@ -21,7 +24,7 @@ namespace Library
             {
                 for (int j = i + 1; j < array.Length; j++)
                 {
-                    if (CountTheSumOfArray(array[j]) > CountTheSumOfArray(array[i]))
+                    if (CountTheSumOfArray(array[i]) > CountTheSumOfArray(array[j]))
                     {
                         Swap(ref array[i], ref array[j]);                     
                     }
@@ -42,7 +45,7 @@ namespace Library
             {
                 for (int j = i + 1; j < array.Length; j++)
                 {
-                    if (CountTheSumOfArray(array[j]) < CountTheSumOfArray(array[i]))
+                    if (CountTheSumOfArray(array[i]) < CountTheSumOfArray(array[j]))
                     {
                         Swap(ref array[i], ref array[j]);
                     }
